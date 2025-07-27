@@ -30,4 +30,14 @@ class UserDefaultsManager {
     func clearRecords() {
         UserDefaults.standard.removeObject(forKey: key)
     }
+    
+    func loadRecords() -> [DietRecord] {
+        guard let data = UserDefaults.standard.data(forKey: "records") else { return [] }
+        let decoder = JSONDecoder()
+        if let records = try? decoder.decode([DietRecord].self, from: data) {
+            return records
+        }
+        return []
+    }
+
 }
