@@ -14,11 +14,11 @@ struct HomeView: View {
     @AppStorage("startHour") var startHour = 10
     @AppStorage("endHour") var endHour = 22
 
-    let duration: TimeInterval = 12 * 60 * 60
+    let duration: TimeInterval = 16 * 60 * 60
 
     var body: some View {
         VStack(spacing: 20) {
-            Text("12時間ダイエット")
+            Text("16時間ダイエット")
                 .font(.title)
 
             Text("開始時間: \(String(format: "%02d:00", startHour))")
