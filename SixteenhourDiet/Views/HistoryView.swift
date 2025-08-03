@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct HistoryView: View {
+    @StateObject private var weightViewModel = WeightViewModel()
     @State private var selectedDate = Date()
     @State private var animateCalendar = false
+    @State private var showingEditView = false
     
     var body: some View {
         ZStack {
@@ -35,7 +37,7 @@ struct HistoryView: View {
                     }
                     
                     // カレンダー表示
-                    CalendarView(selectedDate: $selectedDate)
+                    CalendarView(selectedDate: $selectedDate, weightViewModel: weightViewModel)
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 15)
@@ -44,13 +46,15 @@ struct HistoryView: View {
                         )
                     
                     // 選択日付の詳細表示
-                    DayDetailView(selectedDate: selectedDate)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 15)
-                                .fill(Color.white.opacity(0.9))
-                                .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
-                        )
+                    DayDetailView(selectedDate: selectedDate, weightViewModel: weightViewModel, onEditTap: {
+                        showingEditView = true
+                    })
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.white.opacity(0.9))
+                            .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
+                    )
                     
                     Spacer(minLength: 20)
                 }
@@ -60,12 +64,16 @@ struct HistoryView: View {
         .onAppear {
             animateCalendar = true
         }
+        .sheet(isPresented: $showingEditView) {
+            DayDetailEditView(weightViewModel: weightViewModel, selectedDate: selectedDate)
+        }
     }
 }
 
 struct CalendarView: View {
     @Binding var selectedDate: Date
     @State private var currentMonth = Date()
+    @ObservedObject var weightViewModel: WeightViewModel
     
     var body: some View {
         VStack(spacing: 15) {
@@ -100,7 +108,6 @@ struct CalendarView: View {
                         .font(.title2)
                 }
             }
-            .padding(.horizontal)
             
             // 曜日ヘッダー
             HStack {
@@ -142,39 +149,36 @@ struct CalendarView: View {
     
     private func daysInMonth() -> [Date?] {
         let calendar = Calendar.current
-        let startOfMonth = calendar.dateInterval(of: .month, for: currentMonth)?.start ?? currentMonth
-        let firstWeekday = calendar.component(.weekday, from: startOfMonth)
-        let daysInMonth = calendar.range(of: .day, in: .month, for: currentMonth)?.count ?? 0
+        let monthInterval = calendar.dateInterval(of: .month, for: currentMonth)!
+        let firstDay = monthInterval.start
         
-        var days: [Date?] = []
+        let firstWeekday = calendar.component(.weekday, from: firstDay)
+        let offsetDays = firstWeekday - 1
         
-        // 前月の日付を追加
-        for _ in 1..<firstWeekday {
-            days.append(nil)
-        }
+        let daysInMonth = calendar.range(of: .day, in: .month, for: currentMonth)!.count
         
-        // 今月の日付を追加
+        var days: [Date?] = Array(repeating: nil, count: offsetDays)
+        
         for day in 1...daysInMonth {
-            if let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) {
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstDay) {
                 days.append(date)
             }
+        }
+        
+        // 7の倍数になるように調整
+        while days.count % 7 != 0 {
+            days.append(nil)
         }
         
         return days
     }
     
     private func hasFastingRecord(for date: Date) -> Bool {
-        // サンプルデータ：ランダムに成功記録を生成
-        let calendar = Calendar.current
-        let daysSinceToday = calendar.dateComponents([.day], from: date, to: Date()).day ?? 0
-        return daysSinceToday >= 0 && daysSinceToday < 30 && Bool.random()
+        return weightViewModel.dietRecords.contains { Calendar.current.isDate($0.date, inSameDayAs: date) }
     }
     
     private func hasWeightRecord(for date: Date) -> Bool {
-        // サンプルデータ：ランダムに体重記録を生成
-        let calendar = Calendar.current
-        let daysSinceToday = calendar.dateComponents([.day], from: date, to: Date()).day ?? 0
-        return daysSinceToday >= 0 && daysSinceToday < 30 && Bool.random()
+        return weightViewModel.records.contains { Calendar.current.isDate($0.date, inSameDayAs: date) }
     }
 }
 
@@ -219,6 +223,16 @@ struct DayCell: View {
 
 struct DayDetailView: View {
     let selectedDate: Date
+    @ObservedObject var weightViewModel: WeightViewModel
+    let onEditTap: () -> Void
+    
+    private var dietRecord: DietRecord? {
+        weightViewModel.dietRecords.first { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }
+    }
+    
+    private var weightRecord: WeightRecord? {
+        weightViewModel.records.first { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -229,55 +243,133 @@ struct DayDetailView: View {
                     .font(.headline)
                     .fontWeight(.bold)
                 Spacer()
+                
+                // 編集ボタン
+                Button(action: onEditTap) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "pencil.circle.fill")
+                            .foregroundColor(.blue)
+                        Text("編集")
+                            .foregroundColor(.blue)
+                            .font(.subheadline)
+                    }
+                }
             }
             
             VStack(spacing: 12) {
                 // 断食記録
-                HStack {
-                    Image(systemName: "timer.circle.fill")
-                        .foregroundColor(.orange)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("16時間断食")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Text("成功")
-                            .font(.caption)
-                            .foregroundColor(.green)
+                if let dietRecord = dietRecord {
+                    HStack {
+                        Image(systemName: "timer.circle.fill")
+                            .foregroundColor(.orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("16時間断食")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            if dietRecord.success {
+                                Text("成功")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("失敗")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                        }
+                        Spacer()
+                        
+                        if let duration = dietRecord.fastingDuration {
+                            Text(String(format: "%.1f時間", duration))
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(dietRecord.success ? Color.green : Color.red)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
                     }
-                    Spacer()
-                    Text("16時間")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                    .padding()
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(10)
+                    
+                    // 断食開始日表示
+                    if dietRecord.success {
+                        HStack {
+                            Image(systemName: "calendar.badge.clock")
+                                .foregroundColor(.blue)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("断食開始日")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text(dateString(from: dietRecord.fastingStartDate))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                } else {
+                    HStack {
+                        Image(systemName: "timer.circle.fill")
+                            .foregroundColor(.gray)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("16時間断食")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text("記録なし")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(10)
                 }
-                .padding()
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(10)
                 
                 // 体重記録
-                HStack {
-                    Image(systemName: "scalemass.fill")
-                        .foregroundColor(.pink)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("体重記録")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Text("記録済み")
-                            .font(.caption)
-                            .foregroundColor(.blue)
+                if let weightRecord = weightRecord {
+                    HStack {
+                        Image(systemName: "scalemass.fill")
+                            .foregroundColor(.pink)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("体重記録")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text("記録済み")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                        Spacer()
+                        Text(String(format: "%.1f kg", weightRecord.weight))
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.purple)
                     }
-                    Spacer()
-                    Text("65.2 kg")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.purple)
+                    .padding()
+                    .background(Color.pink.opacity(0.1))
+                    .cornerRadius(10)
+                } else {
+                    HStack {
+                        Image(systemName: "scalemass.fill")
+                            .foregroundColor(.gray)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("体重記録")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text("記録なし")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(10)
                 }
-                .padding()
-                .background(Color.pink.opacity(0.1))
-                .cornerRadius(10)
             }
         }
     }

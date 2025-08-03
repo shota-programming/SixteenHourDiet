@@ -8,6 +8,12 @@ struct WeightView: View {
     @State private var showingInputForm = false
     @State private var showingSuccessAlert = false
     
+    // 本日の体重記録
+    private var todayWeightRecord: WeightRecord? {
+        let today = Date()
+        return viewModel.records.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
+    }
+    
     var body: some View {
         ZStack {
             // 背景グラデーション
@@ -111,22 +117,45 @@ struct WeightView: View {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                             .foregroundColor(.pink)
-                        Text("新しい記録")
+                        Text("本日の体重記録")
                             .font(.headline)
                             .foregroundColor(.primary)
                         Spacer()
                     }
                     
+                    // 本日の記録状況
+                    if let todayRecord = todayWeightRecord {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("本日の記録済み")
+                                .font(.subheadline)
+                                .foregroundColor(.green)
+                            Spacer()
+                            Text(String(format: "%.1f kg", todayRecord.weight))
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.purple)
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.green.opacity(0.1))
+                        )
+                    }
+                    
                     VStack(spacing: 10) {
                         HStack(spacing: 10) {
-                            DatePicker("日付", selection: $viewModel.inputDate, displayedComponents: .date)
-                                .labelsHidden()
-                                .scaleEffect(0.85)
+                            Text("今日の体重")
+                                .foregroundColor(.primary)
+                                .font(.subheadline)
                             
-                            TextField("体重(kg)", text: $viewModel.inputWeight)
+                            TextField("kg", text: $viewModel.inputWeight)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 70)
+                                .frame(width: 80)
+                            Text("kg")
+                                .foregroundColor(.secondary)
                         }
                         
                         // ボタン行
@@ -162,7 +191,6 @@ struct WeightView: View {
                             Button(action: {
                                 withAnimation(.spring()) {
                                     viewModel.inputWeight = ""
-                                    viewModel.inputDate = Date()
                                 }
                             }) {
                                 HStack {

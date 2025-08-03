@@ -5,6 +5,9 @@ struct SettingsView: View {
     @State private var fastingDuration: Double = 16.0
     @State private var selectedTheme = 0
     @State private var animateSettings = false
+    @State private var showingClearDataAlert = false
+    @StateObject private var weightViewModel = WeightViewModel()
+    @StateObject private var notificationManager = NotificationManager.shared
     
     var body: some View {
         ZStack {
@@ -47,9 +50,11 @@ struct SettingsView: View {
                         }
                         
                         VStack(spacing: 12) {
-                            ToggleRow(icon: "bell.circle.fill", title: "プッシュ通知", isOn: $notificationsEnabled, color: .orange)
-                            ToggleRow(icon: "timer.circle.fill", title: "タイマー完了通知", isOn: $notificationsEnabled, color: .green)
-                            ToggleRow(icon: "scalemass.circle.fill", title: "体重記録リマインダー", isOn: $notificationsEnabled, color: .pink)
+                            ToggleRow(icon: "star.circle.fill", title: "断食成功通知", isOn: $notificationManager.settings.fastingSuccessNotification, color: .yellow)
+                        }
+                        .onChange(of: notificationManager.settings) { _ in
+                            notificationManager.saveSettings()
+                            notificationManager.updateAllNotifications()
                         }
                     }
                     .padding()
@@ -116,35 +121,39 @@ struct SettingsView: View {
                     // データ管理
                     VStack(alignment: .leading, spacing: 15) {
                         HStack {
-                            Image(systemName: "folder.fill")
-                                .foregroundColor(.green)
+                            Image(systemName: "externaldrive.fill")
+                                .foregroundColor(.red)
                             Text("データ管理")
                                 .font(.headline)
                                 .foregroundColor(.primary)
                         }
                         
                         VStack(spacing: 12) {
-                            Button(action: {
-                                // データエクスポート機能
-                            }) {
-                                HStack {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .foregroundColor(.blue)
-                                    Text("データをエクスポート")
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.gray)
-                                }
+                            HStack {
+                                Text("体重記録数")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("\(weightViewModel.records.count)件")
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.pink)
+                            }
+                            
+                            HStack {
+                                Text("断食記録数")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("\(weightViewModel.dietRecords.count)件")
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.green)
                             }
                             
                             Button(action: {
-                                // データリセット機能
+                                showingClearDataAlert = true
                             }) {
                                 HStack {
-                                    Image(systemName: "trash")
+                                    Image(systemName: "trash.circle.fill")
                                         .foregroundColor(.red)
-                                    Text("データをリセット")
+                                    Text("全データを削除")
                                         .foregroundColor(.red)
                                     Spacer()
                                     Image(systemName: "chevron.right")
@@ -171,34 +180,6 @@ struct SettingsView: View {
                         }
                         
                         VStack(spacing: 12) {
-                            Button(action: {
-                                // プライバシーポリシー
-                            }) {
-                                HStack {
-                                    Image(systemName: "hand.raised")
-                                        .foregroundColor(.purple)
-                                    Text("プライバシーポリシー")
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                            
-                            Button(action: {
-                                // 利用規約
-                            }) {
-                                HStack {
-                                    Image(systemName: "doc.text")
-                                        .foregroundColor(.orange)
-                                    Text("利用規約")
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                            
                             HStack {
                                 Text("バージョン")
                                     .foregroundColor(.primary)
@@ -222,6 +203,14 @@ struct SettingsView: View {
         }
         .onAppear {
             animateSettings = true
+        }
+        .alert("データを削除", isPresented: $showingClearDataAlert) {
+            Button("キャンセル", role: .cancel) { }
+            Button("削除", role: .destructive) {
+                weightViewModel.clearAllData()
+            }
+        } message: {
+            Text("全ての体重記録と断食記録が削除されます。この操作は取り消せません。")
         }
     }
 }

@@ -13,6 +13,8 @@ class WeightViewModel: ObservableObject {
     @Published var inputDate: Date = Date()
     @Published var inputWeight: String = ""
     
+    private let userDefaultsManager = UserDefaultsManager.shared
+    
     var filteredRecords: [WeightRecord] {
         return filteredRecords(period: 0, offset: 0) // デフォルトは現在の週
     }
@@ -26,28 +28,65 @@ class WeightViewModel: ObservableObject {
     init() {
         loadRecords()
         loadDietRecords()
-        addSampleData() // サンプルデータを追加
+        
+        // 初回起動時のみサンプルデータを追加
+        if !userDefaultsManager.hasData() {
+            addSampleData()
+            addSampleDietData()
+        }
     }
     
     func addWeightRecord() {
         guard let weight = Double(inputWeight) else { return }
-        let newRecord = WeightRecord(date: inputDate, weight: weight)
+        let today = Date()
+        let newRecord = WeightRecord(date: today, weight: weight)
         records.append(newRecord)
         saveRecords()
         inputWeight = ""
+        
+        // 新しい体重記録リマインダーをスケジュール
+        NotificationManager.shared.scheduleWeightRecordReminder()
     }
     
     func loadRecords() {
-        // UserDefaults等から取得する処理を後で実装
+        records = userDefaultsManager.loadWeightRecords()
     }
     
     func saveRecords() {
-        // UserDefaults等に保存する処理を後で実装
+        userDefaultsManager.saveWeightRecords(records)
     }
     
     func loadDietRecords() {
-        // DietRecordの取得処理を後で実装
-        addSampleDietData() // サンプルデータを追加
+        dietRecords = userDefaultsManager.loadDietRecords()
+    }
+    
+    func saveDietRecords() {
+        userDefaultsManager.saveDietRecords(dietRecords)
+    }
+    
+    // 断食記録を追加
+    func addDietRecord(date: Date, success: Bool) {
+        let newRecord = DietRecord(date: date, success: success)
+        dietRecords.append(newRecord)
+        saveDietRecords()
+        
+        // 断食成功時に通知を送信
+        if success {
+            NotificationManager.shared.sendFastingSuccessNotification()
+        }
+        
+        // 断食終了リマインダーをスケジュール
+        NotificationManager.shared.scheduleFastingEndReminder()
+        
+        // 断食開始リマインダーをスケジュール
+        NotificationManager.shared.scheduleFastingStartReminder()
+    }
+    
+    // データをクリア
+    func clearAllData() {
+        userDefaultsManager.clearAllData()
+        records = []
+        dietRecords = []
     }
     
     // 期間別フィルタリング機能（週/月 + オフセット）
