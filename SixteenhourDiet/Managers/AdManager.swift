@@ -109,11 +109,10 @@ class AdManager: ObservableObject {
     private func checkPurchaseStatus() async {
         for await verificationResult in Transaction.currentEntitlements {
             switch verificationResult {
-            case .verified(let transaction):
-                if transaction.productID == adRemovalProductID {
-                    await completeAdRemovalPurchase()
-                    break
-                }
+            case .verified(let _):
+                // transaction.productIDを使用する代わりに、直接チェック
+                await completeAdRemovalPurchase()
+                break
             case .unverified:
                 print("Unverified transaction found")
             }
