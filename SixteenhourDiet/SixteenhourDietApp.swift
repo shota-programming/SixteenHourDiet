@@ -6,12 +6,21 @@
 //
 
 import SwiftUI
+import StoreKit
 
 @main
 struct SixteenhourDietApp: App {
+    @StateObject private var adManager = AdManager.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    // StoreKit 2の初期化
+                    Task {
+                        try? await AppStore.sync()
+                    }
+                }
         }
     }
 }

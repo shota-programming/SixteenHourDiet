@@ -13,15 +13,13 @@ struct MainTabView: View {
                 .accentColor(.orange)
             
             // 体重記録
-            NavigationView {
-                WeightView()
-            }
-            .tabItem {
-                Image(systemName: "scalemass.fill")
-                    .foregroundColor(.pink)
-                Text("体重記録")
-            }
-            .accentColor(.pink)
+            WeightView()
+                .tabItem {
+                    Image(systemName: "scalemass.fill")
+                        .foregroundColor(.pink)
+                    Text("体重記録")
+                }
+                .accentColor(.pink)
             
             // 履歴確認
             HistoryView()

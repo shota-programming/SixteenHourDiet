@@ -24,205 +24,232 @@ struct WeightView: View {
             )
             .ignoresSafeArea()
             
-            VStack(spacing: 30) {
-                // ヘッダー
-                VStack(spacing: 10) {
-                    Image(systemName: "scalemass.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(.pink)
-                        .scaleEffect(animateChart ? 1.1 : 1.0)
-                        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: animateChart)
-                    
-                    Text("体重記録")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    
-                    Text("健康管理をサポート")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                // 表示期間選択（新UI）
-                VStack(spacing: 16) {
-                    // 週/月切り替え
-                    Picker("表示タイプ", selection: $selectedPeriod) {
-                        Text("週").tag(0)
-                        Text("月").tag(1)
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .padding(.horizontal)
-                    
-                    // 期間スライド
-                    HStack(spacing: 24) {
-                        Button(action: {
-                            if selectedOffset < 2 {
-                                withAnimation(.spring()) {
-                                    selectedOffset += 1
-                                }
-                            }
-                        }) {
-                            Image(systemName: "chevron.left.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(selectedOffset < 2 ? .purple : .gray.opacity(0.3))
-                        }
-                        .disabled(selectedOffset >= 2)
-                        
-                        VStack(spacing: 2) {
-                            Text(periodDisplayText)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.purple)
-                            Text(periodRangeText)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(minWidth: 120)
-                        
-                        Button(action: {
-                            if selectedOffset > 0 {
-                                withAnimation(.spring()) {
-                                    selectedOffset -= 1
-                                }
-                            }
-                        }) {
-                            Image(systemName: "chevron.right.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(selectedOffset > 0 ? .purple : .gray.opacity(0.3))
-                        }
-                        .disabled(selectedOffset <= 0)
-                    }
-                    .padding(.vertical, 4)
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 15)
-                        .fill(Color.white.opacity(0.95))
-                        .shadow(color: .gray.opacity(0.15), radius: 8, x: 0, y: 4)
-                )
-                
-                // グラフ表示
-                WeightChartView(
-                    records: viewModel.filteredRecords(period: selectedPeriod, offset: selectedOffset),
-                    dietRecords: viewModel.dietRecords,
-                    displayMode: selectedPeriod == 0 ? .week : .month
-                )
-                .frame(height: 180)
-                .padding(.horizontal, 8)
-                .scaleEffect(animateChart ? 1.02 : 1.0)
-                .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: animateChart)
-                
-                // 入力フォーム
-                VStack(spacing: 10) {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.pink)
-                        Text("本日の体重記録")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        Spacer()
-                    }
-                    
-                    // 本日の記録状況
-                    if let todayRecord = todayWeightRecord {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text("本日の記録済み")
-                                .font(.subheadline)
-                                .foregroundColor(.green)
-                            Spacer()
-                            Text(String(format: "%.1f kg", todayRecord.weight))
-                                .font(.headline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.purple)
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.green.opacity(0.1))
-                        )
-                    }
-                    
+            ScrollView {
+                VStack(spacing: 30) {
+                    // ヘッダー
                     VStack(spacing: 10) {
-                        HStack(spacing: 10) {
-                            Text("今日の体重")
-                                .foregroundColor(.primary)
-                                .font(.subheadline)
-                            
-                            TextField("kg", text: $viewModel.inputWeight)
-                                .keyboardType(.decimalPad)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .frame(width: 80)
-                            Text("kg")
-                                .foregroundColor(.secondary)
-                        }
+                        Image(systemName: "scalemass.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.pink)
+                            .scaleEffect(animateChart ? 1.1 : 1.0)
+                            .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: animateChart)
                         
-                        // ボタン行
-                        HStack(spacing: 8) {
-                            // 記録ボタン
+                        Text("体重記録")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        
+                        Text("健康管理をサポート")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // 表示期間選択（新UI）
+                    VStack(spacing: 16) {
+                        // 週/月切り替え
+                        Picker("表示タイプ", selection: $selectedPeriod) {
+                            Text("週").tag(0)
+                            Text("月").tag(1)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding(.horizontal)
+                        
+                        // 期間スライド
+                        HStack(spacing: 24) {
                             Button(action: {
-                                if !viewModel.inputWeight.isEmpty {
+                                if selectedOffset < 2 {
                                     withAnimation(.spring()) {
-                                        viewModel.addWeightRecord()
-                                        showingSuccessAlert = true
+                                        selectedOffset += 1
                                     }
                                 }
                             }) {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                    Text("記録")
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 6)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.green, Color.blue]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(12)
+                                Image(systemName: "chevron.left.circle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(selectedOffset < 2 ? .purple : .gray.opacity(0.3))
                             }
-                            .disabled(viewModel.inputWeight.isEmpty)
+                            .disabled(selectedOffset >= 2)
                             
-                            // リセットボタン
+                            VStack(spacing: 2) {
+                                Text(periodDisplayText)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.purple)
+                                Text(periodRangeText)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(minWidth: 120)
+                            
                             Button(action: {
-                                withAnimation(.spring()) {
-                                    viewModel.inputWeight = ""
+                                if selectedOffset > 0 {
+                                    withAnimation(.spring()) {
+                                        selectedOffset -= 1
+                                    }
                                 }
                             }) {
-                                HStack {
-                                    Image(systemName: "arrow.clockwise.circle.fill")
-                                    Text("リセット")
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 6)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.orange, Color.red]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
+                                Image(systemName: "chevron.right.circle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(selectedOffset > 0 ? .purple : .gray.opacity(0.3))
+                            }
+                            .disabled(selectedOffset <= 0)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.white.opacity(0.95))
+                            .shadow(color: .gray.opacity(0.15), radius: 8, x: 0, y: 4)
+                    )
+                    
+                    // グラフ表示
+                    WeightChartView(
+                        records: viewModel.filteredRecords(period: selectedPeriod, offset: selectedOffset),
+                        dietRecords: viewModel.dietRecords,
+                        displayMode: selectedPeriod == 0 ? .week : .month
+                    )
+                    .frame(height: 180)
+                    
+                    // 入力フォーム
+                    VStack(spacing: 10) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.pink)
+                            Text("本日の体重記録")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            Spacer()
+                        }
+                        
+                        // 本日の記録状況
+                        if let todayRecord = todayWeightRecord {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("本日の記録済み")
+                                    .font(.subheadline)
+                                    .foregroundColor(.green)
+                                Spacer()
+                                Text(String(format: "%.1f kg", todayRecord.weight))
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.purple)
+                            }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.green.opacity(0.1))
+                            )
+                        } else {
+                            HStack {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundColor(.orange)
+                                Text("本日の記録未入力")
+                                    .font(.subheadline)
+                                    .foregroundColor(.orange)
+                                Spacer()
+                                Text("記録してください")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.orange.opacity(0.1))
+                            )
+                        }
+                        
+                        VStack(spacing: 10) {
+                            HStack(spacing: 10) {
+                                Text("今日の体重")
+                                    .foregroundColor(.primary)
+                                    .font(.subheadline)
+                                
+                                TextField("kg", text: $viewModel.inputWeight)
+                                    .keyboardType(.decimalPad)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(width: 80)
+                                Text("kg")
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            // ボタン行
+                            HStack(spacing: 8) {
+                                // 記録ボタン
+                                Button(action: {
+                                    if !viewModel.inputWeight.isEmpty {
+                                        withAnimation(.spring()) {
+                                            viewModel.addWeightRecord()
+                                            showingSuccessAlert = true
+                                            // 体重記録完了時の広告表示
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                // インタースティシャル広告を表示
+                                                showInterstitialAd()
+                                            }
+                                        }
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "checkmark.circle.fill")
+                                        Text(todayWeightRecord != nil ? "更新" : "記録")
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.green, Color.blue]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
                                     )
-                                )
-                                .cornerRadius(12)
+                                    .cornerRadius(12)
+                                }
+                                .disabled(viewModel.inputWeight.isEmpty)
+                                
+                                // リセットボタン
+                                Button(action: {
+                                    withAnimation(.spring()) {
+                                        viewModel.inputWeight = ""
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "arrow.clockwise.circle.fill")
+                                        Text("リセット")
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.orange, Color.red]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(12)
+                                }
                             }
                         }
                     }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.white.opacity(0.9))
+                            .shadow(color: .gray.opacity(0.2), radius: 2, x: 0, y: 1)
+                    )
+                    
+                    Spacer(minLength: 20)
                 }
                 .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.white.opacity(0.9))
-                        .shadow(color: .gray.opacity(0.2), radius: 2, x: 0, y: 1)
-                )
-                
-                Spacer()
             }
-            .padding()
         }
+        .overlay(
+            VStack {
+                Spacer()
+                AdBannerView()
+            }
+        )
         .onAppear {
             animateChart = true
         }
@@ -231,7 +258,17 @@ struct WeightView: View {
                 showingSuccessAlert = false
             }
         } message: {
-            Text("体重記録が正常に保存されました")
+            Text(todayWeightRecord != nil ? "体重記録が更新されました" : "体重記録が正常に保存されました")
+        }
+    }
+    
+    // インタースティシャル広告表示関数
+    private func showInterstitialAd() {
+        let adManager = AdManager.shared
+        if adManager.shouldShowInterstitialAd() {
+            // 実際のAdMob実装時に広告表示ロジックを追加
+            print("体重記録完了時のインタースティシャル広告を表示")
+            adManager.recordInterstitialAdShown()
         }
     }
     

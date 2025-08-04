@@ -8,4 +8,8 @@ struct NotificationSettings: Codable, Equatable {
     
     // 体重記録リマインダーの曜日（週1回）
     var weightRecordDayOfWeek: Int = 1 // 月曜日（1=日曜日, 2=月曜日, ...）
+    
+    // 絵文字設定
+    var fastingEmoji: String = "🍽️"
+    var weightEmoji: String = "⚖️"
 } 

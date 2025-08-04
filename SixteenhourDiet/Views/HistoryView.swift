@@ -16,49 +16,54 @@ struct HistoryView: View {
             )
             .ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 20) {
-                    // ヘッダー
-                    VStack(spacing: 10) {
-                        Image(systemName: "calendar.circle.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.purple)
-                            .scaleEffect(animateCalendar ? 1.1 : 1.0)
-                            .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: animateCalendar)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // ヘッダー
+                        VStack(spacing: 10) {
+                            Image(systemName: "calendar.circle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.purple)
+                                .scaleEffect(animateCalendar ? 1.1 : 1.0)
+                                .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: animateCalendar)
+                            
+                            Text("履歴カレンダー")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                            
+                            Text("あなたの健康記録")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                         
-                        Text("履歴カレンダー")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
+                        // カレンダー表示
+                        CalendarView(selectedDate: $selectedDate, weightViewModel: weightViewModel)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(Color.white.opacity(0.9))
+                                    .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
+                            )
                         
-                        Text("あなたの健康記録")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    // カレンダー表示
-                    CalendarView(selectedDate: $selectedDate, weightViewModel: weightViewModel)
+                        // 選択日付の詳細表示
+                        DayDetailView(selectedDate: selectedDate, weightViewModel: weightViewModel, onEditTap: {
+                            showingEditView = true
+                        })
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 15)
                                 .fill(Color.white.opacity(0.9))
                                 .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
                         )
-                    
-                    // 選択日付の詳細表示
-                    DayDetailView(selectedDate: selectedDate, weightViewModel: weightViewModel, onEditTap: {
-                        showingEditView = true
-                    })
+                        
+                        Spacer(minLength: 20)
+                    }
                     .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 15)
-                            .fill(Color.white.opacity(0.9))
-                            .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
-                    )
-                    
-                    Spacer(minLength: 20)
                 }
-                .padding()
+                
+                // 広告バナー
+                AdBannerView()
             }
         }
         .onAppear {
@@ -188,6 +193,7 @@ struct DayCell: View {
     let hasFastingRecord: Bool
     let hasWeightRecord: Bool
     let onTap: () -> Void
+    @ObservedObject private var notificationManager = NotificationManager.shared
     
     var body: some View {
         Button(action: onTap) {
@@ -197,17 +203,15 @@ struct DayCell: View {
                     .fontWeight(isSelected ? .bold : .medium)
                     .foregroundColor(isSelected ? .white : .primary)
                 
-                // 記録マーカー
+                // 記録マーカー（絵文字）
                 HStack(spacing: 2) {
                     if hasFastingRecord {
-                        Circle()
-                            .fill(.orange)
-                            .frame(width: 4, height: 4)
+                        Text(notificationManager.settings.fastingEmoji)
+                            .font(.caption2)
                     }
                     if hasWeightRecord {
-                        Circle()
-                            .fill(.pink)
-                            .frame(width: 4, height: 4)
+                        Text(notificationManager.settings.weightEmoji)
+                            .font(.caption2)
                     }
                 }
             }

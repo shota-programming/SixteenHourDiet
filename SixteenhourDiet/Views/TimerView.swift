@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TimerView: View {
+    @StateObject private var weightViewModel = WeightViewModel()
     @State private var isTimerRunning = false
     @State private var remainingTime: TimeInterval = 16 * 60 * 60 // 16時間を秒で表現
     @State private var startTime: Date?
@@ -103,20 +104,9 @@ struct TimerView: View {
                                 Text("終了予定")
                                     .foregroundColor(.primary)
                                 Spacer()
-                                Text(endTimeString)
+                                Text(isTimerRunning ? endTimeString : "-")
                                     .fontWeight(.bold)
-                                    .foregroundColor(.green)
-                            }
-                            
-                            HStack {
-                                Image(systemName: "timer")
-                                    .foregroundColor(.orange)
-                                Text("断食時間")
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Text(calculateFastingDuration())
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(isTimerRunning ? .green : .secondary)
                             }
                         }
                         .padding()
@@ -165,11 +155,17 @@ struct TimerView: View {
                 .padding()
             }
         }
+        .overlay(
+            VStack {
+                Spacer()
+                AdBannerView()
+            }
+        )
         .onAppear {
             pulseAnimation = true
             updateFastingEndTime()
         }
-        .onChange(of: fastingStartTime) { _ in
+        .onChange(of: fastingStartTime) { oldValue, newValue in
             updateFastingEndTime()
         }
         .onDisappear {
@@ -215,7 +211,21 @@ struct TimerView: View {
     private func startTimer() {
         isTimerRunning = true
         startTime = Date()
+        fastingStartTime = Date()
         remainingTime = fastingEndTime.timeIntervalSince(fastingStartTime)
+        
+        // 断食記録を開始（進行中）
+        let dietRecord = DietRecord(
+            date: Date(),
+            success: false,
+            startTime: fastingStartTime,
+            endTime: fastingEndTime
+        )
+        
+        // 既存の記録を削除して新しい記録を追加
+        weightViewModel.dietRecords.removeAll { Calendar.current.isDate($0.date, inSameDayAs: Date()) }
+        weightViewModel.dietRecords.append(dietRecord)
+        weightViewModel.saveDietRecords()
         
         // タイマーを開始
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -224,7 +234,7 @@ struct TimerView: View {
             } else {
                 stopTimer()
                 // 断食完了時の処理
-                NotificationManager.shared.sendFastingSuccessNotification()
+                completeFasting()
             }
         }
     }
@@ -236,6 +246,28 @@ struct TimerView: View {
         // タイマーを停止
         timer?.invalidate()
         timer = nil
+        
+        // 断食記録を削除（中断）
+        weightViewModel.dietRecords.removeAll { Calendar.current.isDate($0.date, inSameDayAs: Date()) }
+        weightViewModel.saveDietRecords()
+    }
+    
+    private func completeFasting() {
+        // 断食成功記録を保存
+        let successRecord = DietRecord(
+            date: Date(),
+            success: true,
+            startTime: fastingStartTime,
+            endTime: Date()
+        )
+        
+        // 既存の記録を削除して成功記録を追加
+        weightViewModel.dietRecords.removeAll { Calendar.current.isDate($0.date, inSameDayAs: Date()) }
+        weightViewModel.dietRecords.append(successRecord)
+        weightViewModel.saveDietRecords()
+        
+        // 成功通知を送信
+        NotificationManager.shared.sendFastingSuccessNotification()
     }
     
     private func timeString(from timeInterval: TimeInterval) -> String {

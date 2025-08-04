@@ -3,11 +3,14 @@ import SwiftUI
 struct SettingsView: View {
     @State private var notificationsEnabled = true
     @State private var fastingDuration: Double = 16.0
-    @State private var selectedTheme = 0
     @State private var animateSettings = false
     @State private var showingClearDataAlert = false
+    @State private var showingAdRemovalAlert = false
+    @State private var showingEmojiPicker = false
+    @State private var selectedEmojiType = 0 // 0: 断食成功, 1: 体重記録
     @StateObject private var weightViewModel = WeightViewModel()
     @StateObject private var notificationManager = NotificationManager.shared
+    @StateObject private var adManager = AdManager.shared
     
     var body: some View {
         ZStack {
@@ -39,6 +42,91 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     
+                    // 広告削除オプション
+                    if !adManager.isPremium {
+                        VStack(alignment: .leading, spacing: 15) {
+                            HStack {
+                                Image(systemName: "megaphone.slash.fill")
+                                    .foregroundColor(.red)
+                                Text("広告削除")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            VStack(spacing: 12) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("広告を完全に削除")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                        Text("より快適な使用体験を")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Text("¥500")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.red)
+                                }
+                                
+                                Button(action: {
+                                    showingAdRemovalAlert = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "crown.fill")
+                                            .foregroundColor(.yellow)
+                                        Text("広告削除を購入")
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.yellow, Color.orange]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(12)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color.white.opacity(0.9))
+                                .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
+                        )
+                    } else {
+                        // プレミアムユーザー表示
+                        VStack(alignment: .leading, spacing: 15) {
+                            HStack {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(.yellow)
+                                Text("プレミアムユーザー")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("広告削除済み")
+                                    .font(.subheadline)
+                                    .foregroundColor(.green)
+                                Spacer()
+                            }
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color.white.opacity(0.9))
+                                .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
+                        )
+                    }
+                    
                     // 通知設定
                     VStack(alignment: .leading, spacing: 15) {
                         HStack {
@@ -52,9 +140,58 @@ struct SettingsView: View {
                         VStack(spacing: 12) {
                             ToggleRow(icon: "star.circle.fill", title: "断食成功通知", isOn: $notificationManager.settings.fastingSuccessNotification, color: .yellow)
                         }
-                        .onChange(of: notificationManager.settings) { _ in
+                        .onChange(of: notificationManager.settings) { oldValue, newValue in
                             notificationManager.saveSettings()
                             notificationManager.updateAllNotifications()
+                        }
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.white.opacity(0.9))
+                            .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
+                    )
+                    
+                    // 絵文字設定
+                    VStack(alignment: .leading, spacing: 15) {
+                        HStack {
+                            Image(systemName: "face.smiling.fill")
+                                .foregroundColor(.purple)
+                            Text("絵文字設定")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                        }
+                        
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("断食成功")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text(notificationManager.settings.fastingEmoji)
+                                    .font(.title2)
+                            }
+                            
+                            HStack {
+                                Text("体重記録")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text(notificationManager.settings.weightEmoji)
+                                    .font(.title2)
+                            }
+                            
+                            Button(action: {
+                                showEmojiPicker()
+                            }) {
+                                HStack {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .foregroundColor(.blue)
+                                    Text("絵文字を変更")
+                                        .foregroundColor(.blue)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.gray)
+                                }
+                            }
                         }
                     }
                     .padding()
@@ -86,30 +223,6 @@ struct SettingsView: View {
                             Slider(value: $fastingDuration, in: 12...24, step: 1)
                                 .accentColor(.purple)
                         }
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 15)
-                            .fill(Color.white.opacity(0.9))
-                            .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
-                    )
-                    
-                    // 表示設定
-                    VStack(alignment: .leading, spacing: 15) {
-                        HStack {
-                            Image(systemName: "paintbrush.fill")
-                                .foregroundColor(.blue)
-                            Text("表示設定")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                        }
-                        
-                        Picker("テーマ", selection: $selectedTheme) {
-                            Text("システム").tag(0)
-                            Text("ライト").tag(1)
-                            Text("ダーク").tag(2)
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
                     }
                     .padding()
                     .background(
@@ -212,6 +325,26 @@ struct SettingsView: View {
         } message: {
             Text("全ての体重記録と断食記録が削除されます。この操作は取り消せません。")
         }
+        .alert("広告削除の購入", isPresented: $showingAdRemovalAlert) {
+            Button("キャンセル", role: .cancel) { }
+            Button("購入", role: .none) {
+                Task {
+                    await adManager.purchaseAdRemoval()
+                }
+            }
+        } message: {
+            Text("¥500で広告を完全に削除します。この購入は一度だけです。")
+        }
+        .sheet(isPresented: $showingEmojiPicker) {
+            EmojiPickerView(
+                fastingEmoji: $notificationManager.settings.fastingEmoji,
+                weightEmoji: $notificationManager.settings.weightEmoji
+            )
+        }
+    }
+    
+    private func showEmojiPicker() {
+        showingEmojiPicker = true
     }
 }
 

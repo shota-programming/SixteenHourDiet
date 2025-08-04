@@ -39,8 +39,17 @@ class WeightViewModel: ObservableObject {
     func addWeightRecord() {
         guard let weight = Double(inputWeight) else { return }
         let today = Date()
-        let newRecord = WeightRecord(date: today, weight: weight)
-        records.append(newRecord)
+        
+        // 既存の本日の記録があるかチェック
+        if let existingIndex = records.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: today) }) {
+            // 既存の記録を更新
+            records[existingIndex].weight = weight
+        } else {
+            // 新しい記録を追加
+            let newRecord = WeightRecord(date: today, weight: weight)
+            records.append(newRecord)
+        }
+        
         saveRecords()
         inputWeight = ""
         
@@ -116,9 +125,13 @@ class WeightViewModel: ObservableObject {
         
         switch period {
         case 0: // 週
-            // 指定週の開始日（月曜日）
+            // 指定週の開始日（日曜日）
             if let weekInterval = calendar.dateInterval(of: .weekOfYear, for: offsetDate) {
-                startDate = weekInterval.start
+                // 週の開始日を日曜日に調整
+                let weekStart = weekInterval.start
+                let weekday = calendar.component(.weekday, from: weekStart)
+                let daysToSubtract = weekday - 1 // 日曜日を1として調整
+                startDate = calendar.date(byAdding: .day, value: -daysToSubtract, to: weekStart)!
                 endDate = calendar.date(byAdding: .day, value: 6, to: startDate)!
             } else {
                 startDate = offsetDate
@@ -160,46 +173,16 @@ class WeightViewModel: ObservableObject {
         let calendar = Calendar.current
         let today = Date()
         
-        // 現在の月のデータを生成
-        if let monthInterval = calendar.dateInterval(of: .month, for: today) {
-            let startOfMonth = monthInterval.start
-            let endOfMonth = calendar.date(byAdding: .day, value: -1, to: monthInterval.end)!
-            
-            var currentDate = startOfMonth
-            while currentDate <= endOfMonth {
+        // 過去1週間のサンプルデータのみを生成
+        for i in 0..<7 {
+            if let date = calendar.date(byAdding: .day, value: -i, to: today) {
                 // 体重の変化パターン（68kg前後で変動）
                 let baseWeight = 68.0
-                let dayOffset = calendar.dateComponents([.day], from: startOfMonth, to: currentDate).day ?? 0
-                let weightChange = Double(dayOffset) * 0.01 // 徐々に変化
                 let randomVariation = Double.random(in: -0.3...0.3)
-                let weight = baseWeight + weightChange + randomVariation
+                let weight = baseWeight + randomVariation
                 
-                let record = WeightRecord(date: currentDate, weight: weight)
+                let record = WeightRecord(date: date, weight: weight)
                 records.append(record)
-                
-                currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
-            }
-        }
-        
-        // 前月のデータも少し追加
-        if let previousMonth = calendar.date(byAdding: .month, value: -1, to: today),
-           let monthInterval = calendar.dateInterval(of: .month, for: previousMonth) {
-            let startOfMonth = monthInterval.start
-            let endOfMonth = calendar.date(byAdding: .day, value: -1, to: monthInterval.end)!
-            
-            var currentDate = startOfMonth
-            while currentDate <= endOfMonth {
-                // 前月の体重データ
-                let baseWeight = 68.5
-                let dayOffset = calendar.dateComponents([.day], from: startOfMonth, to: currentDate).day ?? 0
-                let weightChange = Double(dayOffset) * 0.01
-                let randomVariation = Double.random(in: -0.3...0.3)
-                let weight = baseWeight + weightChange + randomVariation
-                
-                let record = WeightRecord(date: currentDate, weight: weight)
-                records.append(record)
-                
-                currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
             }
         }
     }
@@ -209,8 +192,8 @@ class WeightViewModel: ObservableObject {
         let calendar = Calendar.current
         let today = Date()
         
-        // 過去6ヶ月間のサンプル断食データ
-        for i in 0..<180 {
+        // 過去1週間のサンプル断食データのみ
+        for i in 0..<7 {
             if let date = calendar.date(byAdding: .day, value: -i, to: today) {
                 // より現実的な成功率（70%程度）
                 let success = Double.random(in: 0...1) < 0.7

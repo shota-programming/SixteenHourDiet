@@ -37,12 +37,17 @@ struct WeightChartView: View {
             )
         } else {
             // データがある場合
-            let minWeight = (records.map { $0.weight }.min() ?? 0) - 0.5
-            let maxWeight = (records.map { $0.weight }.max() ?? 0) + 0.5
+            let minWeight = (records.map { $0.weight }.min() ?? 0) - 1.0
+            let maxWeight = (records.map { $0.weight }.max() ?? 0) + 1.0
             
             // データの期間を計算
             let minDate = records.map { $0.date }.min() ?? Date()
             let maxDate = records.map { $0.date }.max() ?? Date()
+            
+            // 日付の余白を追加
+            let calendar = Calendar.current
+            let startDate = calendar.date(byAdding: .day, value: -1, to: minDate) ?? minDate
+            let endDate = calendar.date(byAdding: .day, value: 1, to: maxDate) ?? maxDate
             
             Chart {
                 ForEach(records) { record in
@@ -70,17 +75,19 @@ struct WeightChartView: View {
                 
                 // 断食成功日のマーク
                 ForEach(dietRecords.filter { $0.success }) { dietRecord in
-                    PointMark(
-                        x: .value("日付", dietRecord.date),
-                        y: .value("体重", records.first { Calendar.current.isDate($0.date, inSameDayAs: dietRecord.date) }?.weight ?? 0)
-                    )
-                    .symbol(Circle())
-                    .foregroundStyle(.green)
-                    .symbolSize(80)
+                    if let weightRecord = records.first(where: { Calendar.current.isDate($0.date, inSameDayAs: dietRecord.date) }) {
+                        PointMark(
+                            x: .value("日付", dietRecord.date),
+                            y: .value("体重", weightRecord.weight)
+                        )
+                        .symbol(Circle())
+                        .foregroundStyle(.green)
+                        .symbolSize(80)
+                    }
                 }
             }
             .chartYScale(domain: minWeight...maxWeight)
-            .chartXScale(domain: minDate...maxDate)
+            .chartXScale(domain: startDate...endDate)
             .chartYAxis {
                 AxisMarks(position: .leading) { value in
                     AxisGridLine()
@@ -105,6 +112,8 @@ struct WeightChartView: View {
             }
             .frame(height: 180)
             .background(Color.white)
+            .cornerRadius(15)
+            .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)
         }
     }
 } 

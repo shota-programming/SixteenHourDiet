@@ -44,13 +44,25 @@ class NotificationManager: ObservableObject {
         // 最新の断食記録を取得
         let lastFastingRecord = getLastFastingRecord()
         
-        guard let endTime = lastFastingRecord?.endTime else { return }
+        var reminderDate: Date
         
-        // 断食終了から24時間後を計算
-        let nextFastingStartTime = Calendar.current.date(byAdding: .hour, value: 24, to: endTime) ?? Date()
-        
-        // 24時間後が過去の場合は現在時刻から1時間後に設定
-        let reminderDate = nextFastingStartTime > Date() ? nextFastingStartTime : Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+        if let lastRecord = lastFastingRecord, let endTime = lastRecord.endTime {
+            // 前回の断食終了から8時間後を次の開始時間とする
+            let nextFastingStartTime = Calendar.current.date(byAdding: .hour, value: 8, to: endTime) ?? Date()
+            
+            // 8時間後が過去の場合は明日の朝8時に設定
+            if nextFastingStartTime > Date() {
+                reminderDate = nextFastingStartTime
+            } else {
+                // 明日の朝8時に設定
+                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+                reminderDate = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+            }
+        } else {
+            // 記録がない場合は明日の朝8時に設定
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+            reminderDate = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+        }
         
         let content = UNMutableNotificationContent()
         content.title = "断食開始の時間です"
@@ -72,15 +84,15 @@ class NotificationManager: ObservableObject {
         // 断食開始から16時間後を計算
         let fastingEndTime = Calendar.current.date(byAdding: .hour, value: 16, to: startTime) ?? Date()
         
-        // 16時間後が過去の場合は現在時刻から1時間後に設定
-        let reminderDate = fastingEndTime > Date() ? fastingEndTime : Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+        // 16時間後が過去の場合はスケジュールしない
+        guard fastingEndTime > Date() else { return }
         
         let content = UNMutableNotificationContent()
         content.title = "断食終了の時間です"
         content.body = "16時間断食が完了しました！お疲れ様でした！"
         content.sound = .default
         
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: reminderDate.timeIntervalSinceNow, repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: fastingEndTime.timeIntervalSinceNow, repeats: false)
         let request = UNNotificationRequest(identifier: "fastingEnd", content: content, trigger: trigger)
         
         UNUserNotificationCenter.current().add(request)
@@ -89,10 +101,13 @@ class NotificationManager: ObservableObject {
     func scheduleWeightRecordReminder() {
         // 最終記録日を取得
         let lastRecordDate = getLastWeightRecordDate()
-        let oneWeekLater = Calendar.current.date(byAdding: .day, value: 7, to: lastRecordDate) ?? Date()
+        let calendar = Calendar.current
         
-        // 1週間後が過去の場合は現在時刻から1時間後に設定
-        let reminderDate = oneWeekLater > Date() ? oneWeekLater : Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+        // 最終記録から1週間後を計算
+        let oneWeekLater = calendar.date(byAdding: .day, value: 7, to: lastRecordDate) ?? Date()
+        
+        // 1週間後が過去の場合は明日の朝9時に設定
+        let reminderDate = oneWeekLater > Date() ? oneWeekLater : calendar.date(bySettingHour: 9, minute: 0, second: 0, of: calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()) ?? Date()
         
         let content = UNMutableNotificationContent()
         content.title = "体重記録の時間です"
