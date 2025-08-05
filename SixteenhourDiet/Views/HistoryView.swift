@@ -68,9 +68,24 @@ struct HistoryView: View {
         }
         .onAppear {
             animateCalendar = true
+            // データを再読み込み
+            weightViewModel.loadRecords()
+            weightViewModel.loadDietRecords()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // アプリがアクティブになった時にデータを再読み込み
+            weightViewModel.loadRecords()
+            weightViewModel.loadDietRecords()
         }
         .sheet(isPresented: $showingEditView) {
             DayDetailEditView(weightViewModel: weightViewModel, selectedDate: selectedDate)
+        }
+        .onChange(of: showingEditView) { oldValue, newValue in
+            if !newValue {
+                // 編集画面が閉じられた時にデータを再読み込み
+                weightViewModel.loadRecords()
+                weightViewModel.loadDietRecords()
+            }
         }
     }
 }
@@ -230,6 +245,12 @@ struct DayDetailView: View {
     @ObservedObject var weightViewModel: WeightViewModel
     let onEditTap: () -> Void
     
+    // 設定された断食時間を取得
+    private var fastingDuration: Double {
+        let savedDuration = UserDefaultsManager.shared.loadFastingDuration()
+        return savedDuration > 0 ? savedDuration : 16.0
+    }
+    
     private var dietRecord: DietRecord? {
         weightViewModel.dietRecords.first { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }
     }
@@ -267,7 +288,7 @@ struct DayDetailView: View {
                         Image(systemName: "timer.circle.fill")
                             .foregroundColor(.orange)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("16時間断食")
+                            Text("\(Int(fastingDuration))時間断食")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             if dietRecord.success {
@@ -287,8 +308,8 @@ struct DayDetailView: View {
                                 .font(.caption)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(dietRecord.success ? Color.green : Color.red)
-                                .foregroundColor(.white)
+                                .background(dietRecord.success ? Color.green : Color.clear)
+                                .foregroundColor(dietRecord.success ? .white : .secondary)
                                 .cornerRadius(8)
                         }
                     }
@@ -320,7 +341,7 @@ struct DayDetailView: View {
                         Image(systemName: "timer.circle.fill")
                             .foregroundColor(.gray)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("16時間断食")
+                            Text("\(Int(fastingDuration))時間断食")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             Text("記録なし")

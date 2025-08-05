@@ -28,12 +28,6 @@ class WeightViewModel: ObservableObject {
     init() {
         loadRecords()
         loadDietRecords()
-        
-        // 初回起動時のみサンプルデータを追加
-        if !userDefaultsManager.hasData() {
-            addSampleData()
-            addSampleDietData()
-        }
     }
     
     func addWeightRecord() {
@@ -166,40 +160,5 @@ class WeightViewModel: ObservableObject {
         print("Filtered count: \(filtered.count)")
         
         return filtered
-    }
-    
-    // サンプルデータを追加
-    private func addSampleData() {
-        let calendar = Calendar.current
-        let today = Date()
-        
-        // 過去1週間のサンプルデータのみを生成
-        for i in 0..<7 {
-            if let date = calendar.date(byAdding: .day, value: -i, to: today) {
-                // 体重の変化パターン（68kg前後で変動）
-                let baseWeight = 68.0
-                let randomVariation = Double.random(in: -0.3...0.3)
-                let weight = baseWeight + randomVariation
-                
-                let record = WeightRecord(date: date, weight: weight)
-                records.append(record)
-            }
-        }
-    }
-    
-    // サンプル断食データを追加
-    private func addSampleDietData() {
-        let calendar = Calendar.current
-        let today = Date()
-        
-        // 過去1週間のサンプル断食データのみ
-        for i in 0..<7 {
-            if let date = calendar.date(byAdding: .day, value: -i, to: today) {
-                // より現実的な成功率（70%程度）
-                let success = Double.random(in: 0...1) < 0.7
-                let record = DietRecord(date: date, success: success)
-                dietRecords.append(record)
-            }
-        }
     }
 } 

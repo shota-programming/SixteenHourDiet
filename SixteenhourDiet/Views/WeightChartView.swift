@@ -6,6 +6,15 @@ struct WeightChartView: View {
     let dietRecords: [DietRecord]
     let displayMode: DisplayMode
     
+    // 設定された絵文字を取得
+    private var fastingEmoji: String {
+        return NotificationManager.shared.settings.fastingEmoji
+    }
+    
+    private var weightEmoji: String {
+        return NotificationManager.shared.settings.weightEmoji
+    }
+    
     private func formatDateString(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "M/d"
@@ -37,17 +46,16 @@ struct WeightChartView: View {
             )
         } else {
             // データがある場合
-            let minWeight = (records.map { $0.weight }.min() ?? 0) - 1.0
-            let maxWeight = (records.map { $0.weight }.max() ?? 0) + 1.0
+            let minWeight = (records.map { $0.weight }.min() ?? 0) - 1.5  // 余白を1.5に増加
+            let maxWeight = (records.map { $0.weight }.max() ?? 0) + 1.5  // 余白を1.5に増加
             
             // データの期間を計算
             let minDate = records.map { $0.date }.min() ?? Date()
             let maxDate = records.map { $0.date }.max() ?? Date()
             
-            // 日付の余白を追加
-            let calendar = Calendar.current
-            let startDate = calendar.date(byAdding: .day, value: -1, to: minDate) ?? minDate
-            let endDate = calendar.date(byAdding: .day, value: 1, to: maxDate) ?? maxDate
+            // 余白を削除してデータの範囲のみ表示
+            let startDate = minDate
+            let endDate = maxDate
             
             Chart {
                 ForEach(records) { record in
@@ -73,18 +81,7 @@ struct WeightChartView: View {
                     .symbolSize(60)
                 }
                 
-                // 断食成功日のマーク
-                ForEach(dietRecords.filter { $0.success }) { dietRecord in
-                    if let weightRecord = records.first(where: { Calendar.current.isDate($0.date, inSameDayAs: dietRecord.date) }) {
-                        PointMark(
-                            x: .value("日付", dietRecord.date),
-                            y: .value("体重", weightRecord.weight)
-                        )
-                        .symbol(Circle())
-                        .foregroundStyle(.green)
-                        .symbolSize(80)
-                    }
-                }
+                // 断食成功日のマークは削除
             }
             .chartYScale(domain: minWeight...maxWeight)
             .chartXScale(domain: startDate...endDate)
@@ -111,6 +108,8 @@ struct WeightChartView: View {
                 }
             }
             .frame(height: 180)
+            .padding(.horizontal, 20) // 左右の余白を追加
+            .padding(.vertical, 10)   // 上下の余白を追加
             .background(Color.white)
             .cornerRadius(15)
             .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 2)

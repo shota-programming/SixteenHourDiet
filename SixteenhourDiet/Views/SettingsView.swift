@@ -7,10 +7,17 @@ struct SettingsView: View {
     @State private var showingClearDataAlert = false
     @State private var showingAdRemovalAlert = false
     @State private var showingEmojiPicker = false
+    @State private var showingFastingSettingsAlert = false
     @State private var selectedEmojiType = 0 // 0: 断食成功, 1: 体重記録
     @StateObject private var weightViewModel = WeightViewModel()
     @StateObject private var notificationManager = NotificationManager.shared
     @StateObject private var adManager = AdManager.shared
+    
+    init() {
+        // 保存された断食時間を読み込み（デフォルトは16時間）
+        let savedDuration = UserDefaultsManager.shared.loadFastingDuration()
+        _fastingDuration = State(initialValue: savedDuration > 0 ? savedDuration : 16.0)
+    }
     
     var body: some View {
         ZStack {
@@ -222,6 +229,28 @@ struct SettingsView: View {
                             }
                             Slider(value: $fastingDuration, in: 12...24, step: 1)
                                 .accentColor(.purple)
+                            
+                            Button(action: {
+                                applyFastingSettings()
+                            }) {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                    Text("設定を適用")
+                                        .fontWeight(.semibold)
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color.green, Color.blue]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(8)
+                            }
                         }
                     }
                     .padding()
@@ -335,6 +364,13 @@ struct SettingsView: View {
         } message: {
             Text("¥500で広告を完全に削除します。この購入は一度だけです。")
         }
+        .alert("設定が適用されました", isPresented: $showingFastingSettingsAlert) {
+            Button("OK") {
+                showingFastingSettingsAlert = false
+            }
+        } message: {
+            Text("断食時間を\(Int(fastingDuration))時間に変更しました。\n次回のタイマー開始時から適用されます。")
+        }
         .sheet(isPresented: $showingEmojiPicker) {
             EmojiPickerView(
                 fastingEmoji: $notificationManager.settings.fastingEmoji,
@@ -345,6 +381,20 @@ struct SettingsView: View {
     
     private func showEmojiPicker() {
         showingEmojiPicker = true
+    }
+    
+    private func applyFastingSettings() {
+        // 断食時間設定を保存
+        UserDefaultsManager.shared.saveFastingDuration(fastingDuration)
+        
+        // 通知設定も保存
+        notificationManager.saveSettings()
+        notificationManager.updateAllNotifications()
+        
+        // ポップアップを表示
+        showingFastingSettingsAlert = true
+        
+        print("断食設定が適用されました。次回のタイマー開始時から適用されます。")
     }
 }
 

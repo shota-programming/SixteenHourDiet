@@ -7,6 +7,7 @@ struct WeightView: View {
     @State private var selectedOffset = 0 // 0: 現在, 1: 前, 2: 前々
     @State private var showingInputForm = false
     @State private var showingSuccessAlert = false
+    @FocusState private var isWeightFieldFocused: Bool
     
     // 本日の体重記録
     private var todayWeightRecord: WeightRecord? {
@@ -169,9 +170,20 @@ struct WeightView: View {
                                     .keyboardType(.decimalPad)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .frame(width: 80)
+                                    .focused($isWeightFieldFocused)
+                                    .toolbar {
+                                        ToolbarItemGroup(placement: .keyboard) {
+                                            Spacer()
+                                            Button("完了") {
+                                                isWeightFieldFocused = false
+                                            }
+                                            .foregroundColor(.blue)
+                                        }
+                                    }
                                 Text("kg")
                                     .foregroundColor(.secondary)
                             }
+                            .focused($isWeightFieldFocused)
                             
                             // ボタン行
                             HStack(spacing: 8) {
@@ -181,6 +193,8 @@ struct WeightView: View {
                                         withAnimation(.spring()) {
                                             viewModel.addWeightRecord()
                                             showingSuccessAlert = true
+                                            // キーボードを閉じる
+                                            isWeightFieldFocused = false
                                             // 体重記録完了時の広告表示
                                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                                 // インタースティシャル広告を表示
@@ -194,8 +208,8 @@ struct WeightView: View {
                                         Text(todayWeightRecord != nil ? "更新" : "記録")
                                     }
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 6)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 10)
                                     .background(
                                         LinearGradient(
                                             gradient: Gradient(colors: [Color.green, Color.blue]),
@@ -206,29 +220,6 @@ struct WeightView: View {
                                     .cornerRadius(12)
                                 }
                                 .disabled(viewModel.inputWeight.isEmpty)
-                                
-                                // リセットボタン
-                                Button(action: {
-                                    withAnimation(.spring()) {
-                                        viewModel.inputWeight = ""
-                                    }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "arrow.clockwise.circle.fill")
-                                        Text("リセット")
-                                    }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [Color.orange, Color.red]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .cornerRadius(12)
-                                }
                             }
                         }
                     }
@@ -250,6 +241,10 @@ struct WeightView: View {
                 AdBannerView()
             }
         )
+        .onTapGesture {
+            // 背景タップでキーボードを閉じる
+            isWeightFieldFocused = false
+        }
         .onAppear {
             animateChart = true
         }

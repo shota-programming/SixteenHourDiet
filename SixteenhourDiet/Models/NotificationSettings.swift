@@ -1,7 +1,7 @@
 import Foundation
 
 struct NotificationSettings: Codable, Equatable {
-    var fastingSuccessNotification: Bool = false
+    var fastingSuccessNotification: Bool = true
     
     // 通知時間設定
     var weightRecordTime: Date = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) ?? Date()

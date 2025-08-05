@@ -9,6 +9,7 @@ class UserDefaultsManager {
     private enum Keys {
         static let weightRecords = "weightRecords"
         static let dietRecords = "dietRecords"
+        static let fastingDuration = "fastingDuration"
     }
     
     private init() {}
@@ -59,6 +60,15 @@ class UserDefaultsManager {
             print("Error loading diet records: \(error)")
             return []
         }
+    }
+    
+    // MARK: - Fasting Duration Settings
+    func saveFastingDuration(_ duration: Double) {
+        userDefaults.set(duration, forKey: Keys.fastingDuration)
+    }
+    
+    func loadFastingDuration() -> Double {
+        return userDefaults.double(forKey: Keys.fastingDuration)
     }
     
     // MARK: - Utility Methods

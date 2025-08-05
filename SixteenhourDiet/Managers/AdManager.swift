@@ -75,7 +75,7 @@ class AdManager: ObservableObject {
             switch result {
             case .success(let verificationResult):
                 switch verificationResult {
-                case .verified(let transaction):
+                case .verified:
                     // 購入成功
                     await completeAdRemovalPurchase()
                     print("Purchase successful")
@@ -109,8 +109,8 @@ class AdManager: ObservableObject {
     private func checkPurchaseStatus() async {
         for await verificationResult in Transaction.currentEntitlements {
             switch verificationResult {
-            case .verified(let _):
-                // transaction.productIDを使用する代わりに、直接チェック
+            case .verified:
+                // 検証済みトランザクションが見つかった場合、購入完了処理を実行
                 await completeAdRemovalPurchase()
                 break
             case .unverified:
