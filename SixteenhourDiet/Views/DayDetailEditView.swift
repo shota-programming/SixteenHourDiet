@@ -272,5 +272,20 @@ struct DayDetailEditView: View {
             weightViewModel.records.removeAll { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }
             weightViewModel.saveRecords()
         }
+        
+        // 保存完了時の広告表示
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            showInterstitialAd()
+        }
+    }
+    
+    // インタースティシャル広告表示関数
+    private func showInterstitialAd() {
+        let adManager = AdManager.shared
+        if adManager.shouldShowInterstitialAd() {
+            // 実際のAdMob実装時に広告表示ロジックを追加
+            print("履歴編集完了時のインタースティシャル広告を表示")
+            adManager.recordInterstitialAdShown()
+        }
     }
 } 
