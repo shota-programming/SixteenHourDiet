@@ -77,7 +77,8 @@ struct TimerView: View {
                         endTimeString: endTimeString,
                         shouldShowLastTimes: shouldShowLastTimes,
                         lastStartTime: lastStartTime,
-                        lastEndTime: lastActualEndTime
+                        lastEndTime: lastActualEndTime,
+                        fastingStartTime: fastingStartTime
                     )
                     .padding()
                     .background(
@@ -147,7 +148,7 @@ struct TimerView: View {
     // 現在時刻の文字列
     private var currentTimeString: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = "M/d HH:mm"
         return formatter.string(from: Date())
     }
     
@@ -210,6 +211,9 @@ struct TimerView: View {
         isTimerRunning = false
         startTime = nil
         
+        // 断食終了予定時間を削除
+        fastingEndTime = Date()
+        
         // 状態を保存
         saveTimerState()
         
@@ -229,6 +233,10 @@ struct TimerView: View {
         // タイマー状態をクリア
         isTimerRunning = false
         startTime = nil
+        
+        // 断食終了予定時間を削除
+        fastingEndTime = Date()
+        
         saveTimerState()
         
         // タイマーを停止
@@ -380,6 +388,7 @@ struct TimeInfoView: View {
     let shouldShowLastTimes: Bool
     let lastStartTime: Date?
     let lastEndTime: Date?
+    let fastingStartTime: Date?
     
     var body: some View {
         VStack(spacing: 12) {
@@ -394,13 +403,27 @@ struct TimeInfoView: View {
                     .foregroundColor(.blue)
             }
             
+            // タイマー実施中のみ断食開始時間を表示
+            if isTimerRunning, let startTime = fastingStartTime {
+                HStack {
+                    Image(systemName: "play.circle.fill")
+                        .foregroundColor(.orange)
+                    Text("開始時刻")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text(formatDateTimeWithDate(from: startTime))
+                        .fontWeight(.bold)
+                        .foregroundColor(.orange)
+                }
+            }
+            
             HStack {
                 Image(systemName: "target")
                     .foregroundColor(.green)
                 Text("終了予定")
                     .foregroundColor(.primary)
                 Spacer()
-                Text(isTimerRunning ? endTimeString : "-")
+                Text(isTimerRunning ? formatDateTimeWithDate(from: Calendar.current.date(byAdding: .hour, value: 16, to: fastingStartTime ?? Date()) ?? Date()) : "-")
                     .fontWeight(.bold)
                     .foregroundColor(isTimerRunning ? .green : .secondary)
             }
@@ -421,7 +444,7 @@ struct TimeInfoView: View {
                             .foregroundColor(.secondary)
                             .font(.caption)
                         Spacer()
-                        Text(formatDateTime(from: lastStartTime!))
+                        Text(formatDateTimeWithDate(from: lastStartTime!))
                             .fontWeight(.bold)
                             .foregroundColor(.orange)
                     }
@@ -431,7 +454,7 @@ struct TimeInfoView: View {
                             .foregroundColor(.secondary)
                             .font(.caption)
                         Spacer()
-                        Text(formatDateTime(from: lastEndTime!))
+                        Text(formatDateTimeWithDate(from: lastEndTime!))
                             .fontWeight(.bold)
                             .foregroundColor(.green)
                     }
@@ -455,6 +478,12 @@ struct TimeInfoView: View {
     }
     
     private func formatDateTime(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d HH:mm"
+        return formatter.string(from: date)
+    }
+    
+    private func formatDateTimeWithDate(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "M/d HH:mm"
         return formatter.string(from: date)

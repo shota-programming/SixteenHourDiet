@@ -291,7 +291,16 @@ struct DayDetailView: View {
                             Text("\(Int(fastingDuration))時間断食")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            if dietRecord.success {
+                            
+                            // 当日で終了時刻が記録されていない場合は「断食中」
+                            let isToday = Calendar.current.isDate(dietRecord.date, inSameDayAs: Date())
+                            let hasEndTime = dietRecord.endTime != nil
+                            
+                            if isToday && !hasEndTime {
+                                Text("断食中")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            } else if dietRecord.success {
                                 Text("成功")
                                     .font(.caption)
                                     .foregroundColor(.green)
@@ -317,25 +326,45 @@ struct DayDetailView: View {
                     .background(Color.orange.opacity(0.1))
                     .cornerRadius(10)
                     
-                    // 断食開始日表示
-                    if dietRecord.success {
-                        HStack {
-                            Image(systemName: "calendar.badge.clock")
-                                .foregroundColor(.blue)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("断食開始日")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                Text(dateString(from: dietRecord.fastingStartDate))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                    // 断食開始時間と終了時間の表示（全ての記録で表示）
+                    VStack(spacing: 8) {
+                        // 開始時間表示
+                        if let startTime = dietRecord.startTime {
+                            HStack {
+                                Image(systemName: "play.circle.fill")
+                                    .foregroundColor(.orange)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("開始時間")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Text(formatDateTime(from: startTime))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
                             }
-                            Spacer()
                         }
-                        .padding()
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(10)
+                        
+                        // 終了時間表示
+                        if let endTime = dietRecord.endTime {
+                            HStack {
+                                Image(systemName: "stop.circle.fill")
+                                    .foregroundColor(.green)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("終了時間")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Text(formatDateTime(from: endTime))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                        }
                     }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(10)
                 } else {
                     HStack {
                         Image(systemName: "timer.circle.fill")
@@ -402,6 +431,12 @@ struct DayDetailView: View {
     private func dateString(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "M月d日 (E)"
+        return formatter.string(from: date)
+    }
+    
+    private func formatDateTime(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
     }
 }

@@ -13,6 +13,9 @@ struct SettingsView: View {
     @StateObject private var notificationManager = NotificationManager.shared
     @StateObject private var adManager = AdManager.shared
     
+    // タイマーの状態を監視
+    @State private var isTimerRunning = false
+    
     init() {
         // 保存された断食時間を読み込み（デフォルトは16時間）
         let savedDuration = UserDefaultsManager.shared.loadFastingDuration()
@@ -251,6 +254,8 @@ struct SettingsView: View {
                                 )
                                 .cornerRadius(8)
                             }
+                            .disabled(isTimerRunning)
+                            .opacity(isTimerRunning ? 0.5 : 1.0)
                         }
                     }
                     .padding()
@@ -345,6 +350,12 @@ struct SettingsView: View {
         }
         .onAppear {
             animateSettings = true
+            // タイマーの状態を監視
+            isTimerRunning = UserDefaults.standard.bool(forKey: "isTimerRunning")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // アプリがアクティブになった時にタイマー状態を更新
+            isTimerRunning = UserDefaults.standard.bool(forKey: "isTimerRunning")
         }
         .alert("データを削除", isPresented: $showingClearDataAlert) {
             Button("キャンセル", role: .cancel) { }
@@ -369,7 +380,11 @@ struct SettingsView: View {
                 showingFastingSettingsAlert = false
             }
         } message: {
-            Text("断食時間を\(Int(fastingDuration))時間に変更しました。\n次回のタイマー開始時から適用されます。")
+            if isTimerRunning {
+                Text("タイマー稼働中は設定を変更できません。\nタイマーを停止してから再度お試しください。")
+            } else {
+                Text("断食時間を\(Int(fastingDuration))時間に変更しました。\n次回のタイマー開始時から適用されます。")
+            }
         }
         .sheet(isPresented: $showingEmojiPicker) {
             EmojiPickerView(
@@ -384,6 +399,12 @@ struct SettingsView: View {
     }
     
     private func applyFastingSettings() {
+        // タイマー稼働中は設定を適用しない
+        if isTimerRunning {
+            showingFastingSettingsAlert = true
+            return
+        }
+        
         // 断食時間設定を保存
         UserDefaultsManager.shared.saveFastingDuration(fastingDuration)
         
