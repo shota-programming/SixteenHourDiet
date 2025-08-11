@@ -20,6 +20,11 @@ struct DayDetailEditView: View {
     
     // 断食成功の自動判定（16時間以上）
     private var isFastingSuccessful: Bool {
+        // 時間が設定されていない場合は判定しない
+        if isTimeUnset(fastingStartTime) || isTimeUnset(fastingEndTime) {
+            return false
+        }
+        
         let duration = fastingEndTime.timeIntervalSince(fastingStartTime) / 3600
         return duration >= 16.0
     }
@@ -72,11 +77,38 @@ struct DayDetailEditView: View {
                         // 断食記録セクション
                         VStack(alignment: .leading, spacing: 15) {
                             HStack {
-                                Image(systemName: "timer.fill")
+                                Image(systemName: "clock.fill")
                                     .foregroundColor(.green)
                                 Text("断食記録")
                                     .font(.headline)
                                     .foregroundColor(.primary)
+                                Spacer()
+                                
+                                // 断食記録クリアボタン
+                                if existingDietRecord != nil {
+                                    Button(action: {
+                                        clearDietRecord()
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "trash.circle.fill")
+                                            Text("クリア")
+                                        }
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.orange, Color.red]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .cornerRadius(8)
+                                        .font(.caption)
+                                    }
+                                    .disabled(isFastingInProgress)
+                                    .opacity(isFastingInProgress ? 0.5 : 1.0)
+                                }
                             }
                             
                             VStack(spacing: 15) {
@@ -85,9 +117,28 @@ struct DayDetailEditView: View {
                                     Text("断食開始時間")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
-                                    DatePicker("開始時間", selection: $fastingStartTime, in: fastingStartTimeRange, displayedComponents: [.date, .hourAndMinute])
-                                        .labelsHidden()
-                                        .environment(\.locale, Locale(identifier: "ja_JP"))
+                                    if isTimeUnset(fastingStartTime) {
+                                        Button(action: {
+                                            // 時間設定を開始
+                                            fastingStartTime = selectedDate
+                                        }) {
+                                            HStack {
+                                                Image(systemName: "plus.circle.fill")
+                                                Text("時間を設定")
+                                            }
+                                            .foregroundColor(.blue)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 8)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(Color.blue.opacity(0.1))
+                                            )
+                                        }
+                                    } else {
+                                        DatePicker("開始時間", selection: $fastingStartTime, in: fastingStartTimeRange, displayedComponents: [.date, .hourAndMinute])
+                                            .labelsHidden()
+                                            .environment(\.locale, Locale(identifier: "ja_JP"))
+                                    }
                                 }
                                 
                                 // 断食終了時間
@@ -95,9 +146,28 @@ struct DayDetailEditView: View {
                                     Text("断食終了時間")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
-                                    DatePicker("終了時間", selection: $fastingEndTime, in: fastingEndTimeRange, displayedComponents: [.date, .hourAndMinute])
-                                        .labelsHidden()
-                                        .environment(\.locale, Locale(identifier: "ja_JP"))
+                                    if isTimeUnset(fastingEndTime) {
+                                        Button(action: {
+                                            // 時間設定を開始
+                                            fastingEndTime = selectedDate
+                                        }) {
+                                            HStack {
+                                                Image(systemName: "plus.circle.fill")
+                                                Text("時間を設定")
+                                            }
+                                            .foregroundColor(.blue)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 8)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(Color.blue.opacity(0.1))
+                                            )
+                                        }
+                                    } else {
+                                        DatePicker("終了時間", selection: $fastingEndTime, in: fastingEndTimeRange, displayedComponents: [.date, .hourAndMinute])
+                                            .labelsHidden()
+                                            .environment(\.locale, Locale(identifier: "ja_JP"))
+                                    }
                                 }
                                 
                                 // 断食時間と成功判定の表示
@@ -188,7 +258,7 @@ struct DayDetailEditView: View {
                             )
                             .cornerRadius(15)
                         }
-                        .disabled(weight.isEmpty && fastingStartTime == fastingEndTime)
+                        .disabled(weight.isEmpty && (isTimeUnset(fastingStartTime) && isTimeUnset(fastingEndTime)))
                         
                         Spacer(minLength: 20)
                     }
@@ -229,10 +299,10 @@ struct DayDetailEditView: View {
             fastingStartTime = dietRecord.startTime ?? selectedDate
             fastingEndTime = dietRecord.endTime ?? selectedDate
         } else {
-            // 新規作成時はデフォルト値を設定
-            let calendar = Calendar.current
-            fastingStartTime = calendar.date(byAdding: .day, value: -1, to: selectedDate) ?? selectedDate
-            fastingEndTime = selectedDate
+            // 新規作成時は時間を未設定（null）にする
+            // ユーザーが明示的に時間を設定するまで断食記録として扱わない
+            fastingStartTime = Date.distantFuture // 未設定状態を表す
+            fastingEndTime = Date.distantFuture   // 未設定状態を表す
         }
         
         // 既存の体重記録を読み込み
@@ -246,18 +316,24 @@ struct DayDetailEditView: View {
     }
     
     private func saveRecords() {
-        // 断食記録を保存（自動判定）
-        let newDietRecord = DietRecord(
-            date: selectedDate,
-            success: isFastingSuccessful,
-            startTime: fastingStartTime,
-            endTime: fastingEndTime
-        )
-        
-        // 既存の記録を削除して新しい記録を追加
-        weightViewModel.dietRecords.removeAll { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }
-        weightViewModel.dietRecords.append(newDietRecord)
-        weightViewModel.saveDietRecords()
+        // 断食記録を保存（時間が設定されている場合のみ）
+        if !isTimeUnset(fastingStartTime) && !isTimeUnset(fastingEndTime) {
+            let newDietRecord = DietRecord(
+                date: selectedDate,
+                success: isFastingSuccessful,
+                startTime: fastingStartTime,
+                endTime: fastingEndTime
+            )
+            
+            // 既存の記録を削除して新しい記録を追加
+            weightViewModel.dietRecords.removeAll { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }
+            weightViewModel.dietRecords.append(newDietRecord)
+            weightViewModel.saveDietRecords()
+        } else {
+            // 時間が設定されていない場合は断食記録を削除
+            weightViewModel.dietRecords.removeAll { Calendar.current.isDate($0.date, inSameDayAs: selectedDate) }
+            weightViewModel.saveDietRecords()
+        }
         
         // 体重記録を保存
         if !weight.isEmpty, let weightValue = Double(weight) {
@@ -279,6 +355,25 @@ struct DayDetailEditView: View {
         }
     }
     
+    private func clearDietRecord() {
+        // WeightViewModelのクリア機能を使用
+        if weightViewModel.clearDietRecord(for: selectedDate) {
+            // クリア成功時の処理
+            fastingStartTime = Date.distantFuture
+            fastingEndTime = Date.distantFuture
+            weight = ""
+            
+            // 保存完了アラートを表示
+            showingSaveAlert = true
+        }
+    }
+    
+    private var isFastingInProgress: Bool {
+        guard let existingRecord = existingDietRecord else { return false }
+        // 実行中の断食かチェック（開始時間はあるが終了時間がない）
+        return existingRecord.startTime != nil && existingRecord.endTime == nil
+    }
+    
     // インタースティシャル広告表示関数
     private func showInterstitialAd() {
         let adManager = AdManager.shared
@@ -287,5 +382,9 @@ struct DayDetailEditView: View {
             print("履歴編集完了時のインタースティシャル広告を表示")
             adManager.recordInterstitialAdShown()
         }
+    }
+    
+    private func isTimeUnset(_ date: Date) -> Bool {
+        return date == Date.distantFuture
     }
 } 

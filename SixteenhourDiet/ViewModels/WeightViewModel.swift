@@ -85,6 +85,45 @@ class WeightViewModel: ObservableObject {
         NotificationManager.shared.scheduleFastingStartReminder()
     }
     
+    // 断食記録をクリア（実行中はクリア不可）
+    func clearDietRecord(for date: Date) -> Bool {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // 実行中の断食があるかチェック（今日のみ）
+        if calendar.isDate(date, inSameDayAs: today) {
+            if let existingRecord = dietRecords.first(where: { calendar.isDate($0.date, inSameDayAs: today) }) {
+                // 実行中の断食はクリア不可
+                if existingRecord.startTime != nil && existingRecord.endTime == nil {
+                    return false
+                }
+            }
+        }
+        
+        // 指定された日付の断食記録を削除
+        if let index = dietRecords.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
+            dietRecords.remove(at: index)
+            saveDietRecords()
+            return true
+        }
+        
+        return false
+    }
+    
+    // 本日の断食記録を取得
+    func getTodayDietRecord() -> DietRecord? {
+        let today = Date()
+        return dietRecords.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
+    }
+    
+    // 本日の断食記録が実行中かチェック
+    func isTodayFastingInProgress() -> Bool {
+        if let todayRecord = getTodayDietRecord() {
+            return todayRecord.startTime != nil && todayRecord.endTime == nil
+        }
+        return false
+    }
+    
     // データをクリア
     func clearAllData() {
         userDefaultsManager.clearAllData()

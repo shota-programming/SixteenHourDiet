@@ -187,17 +187,6 @@ struct WeightChartView: View {
             )
         } else {
             // データがある場合
-            // デバッグ情報を追加
-            let _ = print("WeightChartView Debug:")
-            let _ = print("  DisplayMode: \(displayMode)")
-            let _ = print("  Records count: \(records.count)")
-            let _ = print("  MonthPlotData count: \(displayMode == .month ? generateMonthPlotData().count : 0)")
-            let _ = print("  WeekDateRange: \(weekDateRange?.startDate.description ?? "nil") to \(weekDateRange?.endDate.description ?? "nil")")
-            let _ = print("  MonthDateRange: \(monthDateRange?.startDate.description ?? "nil") to \(monthDateRange?.endDate.description ?? "nil")")
-            let _ = print("  XAxisValues count: \(getXAxisValues().count)")
-            let _ = print("  XAxisValues: \(getXAxisValues().map { formatDateString(from: $0) })")
-            let _ = print("  XAxisScale: \(getXAxisScale().lowerBound.description) to \(getXAxisScale().upperBound.description)")
-            
             Chart {
                 // 月表示時もすべてのrecordsをプロットするように変更
                 ForEach(records) { record in

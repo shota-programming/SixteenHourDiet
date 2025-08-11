@@ -142,7 +142,7 @@ struct CalendarView: View {
             
             // カレンダーグリッド
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
-                ForEach(daysInMonth(), id: \.self) { date in
+                ForEach(Array(daysInMonth().enumerated()), id: \.offset) { index, date in
                     if let date = date {
                         DayCell(
                             date: date,
