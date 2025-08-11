@@ -11,18 +11,21 @@ SixteenHourDietは、16時間断食（間欠的断食）をサポートするiOS
 - **リアルタイム表示**: 残り時間を円グラフで視覚的に表示
 - **完了通知**: 16時間達成時に成功通知を送信
 - **進行状況**: 現在時刻と終了予定時刻を表示
+- **既存記録チェック**: 同日の重複記録を防止
 
 ### ⚖️ 体重記録・管理
 - **日次記録**: 毎日の体重を簡単に記録・更新
-- **グラフ表示**: 週・月単位での体重変化をグラフで可視化
+- **グラフ表示**: 週・月単位での体重変化を美しいグラフで可視化
 - **履歴管理**: 過去の記録をカレンダーで確認
 - **上書き機能**: 既存記録の更新が可能
+- **5日ごと目盛り**: 月表示で見やすい5日間隔の目盛り
 
 ### 📊 履歴・統計
 - **カレンダー表示**: 断食・体重記録をカレンダーで確認
 - **詳細表示**: 日付を選択して詳細情報を表示
 - **編集機能**: 過去の記録を編集可能
 - **統計グラフ**: 体重変化の傾向を分析
+- **ステータス表示**: 断食中・成功・失敗の正確な表示
 
 ### ⚙️ 設定・カスタマイズ
 - **通知設定**: 断食成功通知のON/OFF
@@ -48,6 +51,7 @@ SixteenHourDietは、16時間断食（間欠的断食）をサポートするiOS
 - **直感的操作**: タップで簡単に記録・操作
 - **視覚的フィードバック**: 状態に応じた色とアイコン
 - **レスポンシブ**: 様々な画面サイズに対応
+- **グラフ表示**: 体重変化を美しく可視化
 
 ## 🏗️ 技術仕様
 
@@ -58,9 +62,9 @@ SixteenHourDietは、16時間断食（間欠的断食）をサポートするiOS
 - **アーキテクチャ**: MVVM
 
 ### 主要ライブラリ
-- **Charts**: グラフ表示
-- **StoreKit 2**: In-App Purchase
+- **Charts**: 美しいグラフ表示（週・月表示対応）
 - **UserNotifications**: 通知機能
+- **Calendar**: 日付計算とカレンダー表示
 
 ### データ管理
 - **UserDefaults**: 設定とデータの永続化
@@ -76,21 +80,19 @@ SixteenhourDiet/
 │   ├── DietRecord.swift        # 断食記録モデル
 │   └── NotificationSettings.swift # 通知設定モデル
 ├── ViewModels/
-│   └── WeightViewModel.swift   # 体重管理ビューモデル
+│   └── WeightViewModel.swift   # 体重管理ビューモデル（週・月表示対応）
 ├── Views/
 │   ├── TabView.swift           # メインタブビュー
 │   ├── TimerView.swift         # 断食タイマー画面
-│   ├── WeightView.swift        # 体重記録画面
-│   ├── HistoryView.swift       # 履歴画面
+│   ├── WeightView.swift        # 体重記録画面（週・月切り替え対応）
+│   ├── HistoryView.swift       # 履歴画面（ステータス表示修正）
 │   ├── SettingsView.swift      # 設定画面
-│   ├── WeightChartView.swift   # 体重グラフ
+│   ├── WeightChartView.swift   # 体重グラフ（5日ごと目盛り対応）
 │   ├── DayDetailEditView.swift # 日付詳細編集
-│   ├── AdBannerView.swift      # 広告バナー
 │   └── EmojiPickerView.swift   # 絵文字選択
 └── Managers/
     ├── UserDefaultsManager.swift # データ管理
-    ├── NotificationManager.swift # 通知管理
-    └── AdManager.swift          # 広告管理
+    └── NotificationManager.swift # 通知管理
 ```
 
 ## 🚀 インストール・実行
@@ -103,7 +105,7 @@ SixteenhourDiet/
 ### セットアップ
 1. リポジトリをクローン
 ```bash
-git clone https://github.com/your-username/SixteenhourDiet.git
+git clone https://github.com/shota-programming/SixteenHourDiet.git
 ```
 
 2. Xcodeでプロジェクトを開く
@@ -123,10 +125,12 @@ open SixteenhourDiet.xcodeproj
 - 円グラフでの進行状況表示
 - 開始・停止・完了の状態管理
 - バックグラウンド動作対応
+- 同日重複記録の防止
 
 ### 体重管理
 - 日次体重記録
-- 週・月単位のグラフ表示
+- **週表示**: 7日間を均等分割、正確なプロット位置
+- **月表示**: 5日ごとの目盛り、毎日分のプロット表示
 - 記録の更新・削除
 - 統計情報の表示
 
@@ -135,6 +139,7 @@ open SixteenhourDiet.xcodeproj
 - 日付選択による詳細表示
 - 過去記録の編集
 - 絵文字による記録識別
+- **正確なステータス表示**: 断食中・成功・失敗
 
 ### 設定機能
 - 通知設定のカスタマイズ
@@ -142,32 +147,20 @@ open SixteenhourDiet.xcodeproj
 - データ管理・削除
 - アプリ情報の表示
 
-## 💰 マネタイズ戦略
-
-### 広告収入
-- **バナー広告**: 各画面下部に表示
-- **インタースティシャル広告**: 体重記録完了時
-- **広告削除**: ¥500のワンタイム購入
-
-### 収益予測
-- 月間ユーザー: 1,000人
-- 広告収益: ¥2,000/月
-- 広告削除購入: ¥50,000/月
-- **総収益**: ¥52,000/月
-
 ## 🔮 今後の開発予定
 
 ### 短期目標
-- [ ] AdMob SDKの統合
-- [ ] App Store Connect設定
-- [ ] ユーザーテスト実施
+- [ ] App Storeリリース
+- [ ] ユーザーフィードバック収集
 - [ ] バグ修正・改善
+- [ ] パフォーマンス最適化
 
 ### 長期目標
 - [ ] 複数断食パターン対応
 - [ ] データエクスポート機能
 - [ ] クラウド同期機能
 - [ ] Apple Watch対応
+- [ ] 健康データ連携
 
 ## 🤝 コントリビューション
 
@@ -192,3 +185,5 @@ open SixteenhourDiet.xcodeproj
 ---
 
 **SixteenHourDiet** - 健康な生活習慣をサポートする16時間断食アプリ
+
+*App Storeリリース準備完了！*
