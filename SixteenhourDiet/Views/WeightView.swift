@@ -107,7 +107,9 @@ struct WeightView: View {
                     WeightChartView(
                         records: viewModel.filteredRecords(period: selectedPeriod, offset: selectedOffset),
                         dietRecords: viewModel.dietRecords,
-                        displayMode: selectedPeriod == 0 ? .week : .month
+                        displayMode: selectedPeriod == 0 ? .week : .month,
+                        weekDateRange: selectedPeriod == 0 ? viewModel.getWeekDateRange(period: selectedPeriod, offset: selectedOffset) : nil,
+                        monthDateRange: selectedPeriod == 1 ? viewModel.getMonthDateRange(period: selectedPeriod, offset: selectedOffset) : nil
                     )
                     .frame(height: 180)
                     
@@ -247,6 +249,12 @@ struct WeightView: View {
         }
         .onAppear {
             animateChart = true
+            // データの再読み込みを実行
+            viewModel.loadRecords()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // アプリがフォアグラウンドに戻った時にデータを再読み込み
+            viewModel.loadRecords()
         }
         .alert("記録完了", isPresented: $showingSuccessAlert) {
             Button("OK") {

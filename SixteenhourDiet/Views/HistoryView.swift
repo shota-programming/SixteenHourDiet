@@ -292,11 +292,19 @@ struct DayDetailView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            // 当日で終了時刻が記録されていない場合は「断食中」
+                            // 断食ステータスの判定
                             let isToday = Calendar.current.isDate(dietRecord.date, inSameDayAs: Date())
                             let hasEndTime = dietRecord.endTime != nil
+                            let isRunning = isToday && !hasEndTime && dietRecord.startTime != nil
                             
-                            if isToday && !hasEndTime {
+                            // デバッグ情報（開発時のみ表示）
+                            #if DEBUG
+                            Text("DEBUG: success=\(dietRecord.success), hasEndTime=\(hasEndTime), isToday=\(isToday)")
+                                .font(.caption2)
+                                .foregroundColor(.gray)
+                            #endif
+                            
+                            if isRunning {
                                 Text("断食中")
                                     .font(.caption)
                                     .foregroundColor(.orange)
@@ -304,10 +312,14 @@ struct DayDetailView: View {
                                 Text("成功")
                                     .font(.caption)
                                     .foregroundColor(.green)
-                            } else {
+                            } else if hasEndTime {
                                 Text("失敗")
                                     .font(.caption)
                                     .foregroundColor(.red)
+                            } else {
+                                Text("記録なし")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
                             }
                         }
                         Spacer()

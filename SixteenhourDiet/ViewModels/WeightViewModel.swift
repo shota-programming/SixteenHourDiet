@@ -119,29 +119,31 @@ class WeightViewModel: ObservableObject {
         
         switch period {
         case 0: // 週
-            // 指定週の開始日（日曜日）
+            // 指定週の開始日と終了日を正確に計算
             if let weekInterval = calendar.dateInterval(of: .weekOfYear, for: offsetDate) {
-                // 週の開始日を日曜日に調整
-                let weekStart = weekInterval.start
-                let weekday = calendar.component(.weekday, from: weekStart)
-                let daysToSubtract = weekday - 1 // 日曜日を1として調整
-                startDate = calendar.date(byAdding: .day, value: -daysToSubtract, to: weekStart)!
-                endDate = calendar.date(byAdding: .day, value: 6, to: startDate)!
+                startDate = weekInterval.start
+                // 週の終了日は7日後の前日（6日後）にする
+                endDate = calendar.date(byAdding: .day, value: 6, to: startDate) ?? startDate
             } else {
-                startDate = offsetDate
-                endDate = calendar.date(byAdding: .day, value: 6, to: startDate)!
+                // フォールバック: 手動で週の範囲を計算
+                let weekday = calendar.component(.weekday, from: offsetDate)
+                let daysFromWeekStart = weekday - calendar.firstWeekday
+                startDate = calendar.date(byAdding: .day, value: -daysFromWeekStart, to: offsetDate) ?? offsetDate
+                endDate = calendar.date(byAdding: .day, value: 6, to: startDate) ?? offsetDate
             }
         case 1: // 月
             // 指定月の開始日と終了日
             if let monthInterval = calendar.dateInterval(of: .month, for: offsetDate) {
                 startDate = monthInterval.start
-                endDate = calendar.date(byAdding: .day, value: -1, to: monthInterval.end)!
+                endDate = monthInterval.end
             } else {
-                startDate = offsetDate
-                endDate = calendar.date(byAdding: .month, value: 1, to: startDate)!
+                // フォールバック: 手動で月の範囲を計算
+                let components = calendar.dateComponents([.year, .month], from: offsetDate)
+                startDate = calendar.date(from: components) ?? offsetDate
+                endDate = calendar.date(byAdding: .month, value: 1, to: startDate) ?? offsetDate
             }
         default:
-            startDate = calendar.date(byAdding: .day, value: -6, to: today)!
+            startDate = calendar.date(byAdding: .day, value: -6, to: today) ?? today
             endDate = today
         }
         
@@ -153,12 +155,138 @@ class WeightViewModel: ObservableObject {
         print("End Date: \(formatter.string(from: endDate))")
         print("Records count: \(records.count)")
         
+        // 各記録の日付をデバッグ出力
+        print("All records dates:")
+        for (index, record) in records.enumerated() {
+            print("  [\(index)]: \(formatter.string(from: record.date))")
+        }
+        
         let filtered = records
             .filter { $0.date >= startDate && $0.date <= endDate }
             .sorted { $0.date < $1.date }
         
         print("Filtered count: \(filtered.count)")
+        print("Filtered records:")
+        for record in filtered {
+            print("  - \(formatter.string(from: record.date))")
+        }
         
         return filtered
+    }
+    
+    // 指定された期間とオフセットの週の日付範囲を取得
+    func getWeekDateRange(period: Int, offset: Int) -> (startDate: Date, endDate: Date) {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // オフセットを計算（現在=0, 前=1, 前々=2）
+        let offsetDate: Date
+        switch offset {
+        case 0: // 現在
+            offsetDate = today
+        case 1: // 前
+            offsetDate = period == 0 ? 
+                calendar.date(byAdding: .weekOfYear, value: -1, to: today)! :
+                calendar.date(byAdding: .month, value: -1, to: today)!
+        case 2: // 前々
+            offsetDate = period == 0 ? 
+                calendar.date(byAdding: .weekOfYear, value: -2, to: today)! :
+                calendar.date(byAdding: .month, value: -2, to: today)!
+        default:
+            offsetDate = today
+        }
+        
+        let startDate: Date
+        let endDate: Date
+        
+        switch period {
+        case 0: // 週
+            // 指定週の開始日と終了日を正確に計算
+            if let weekInterval = calendar.dateInterval(of: .weekOfYear, for: offsetDate) {
+                startDate = weekInterval.start
+                // 週の終了日は7日後の前日（6日後）にする
+                endDate = calendar.date(byAdding: .day, value: 6, to: startDate) ?? startDate
+            } else {
+                // フォールバック: 手動で週の範囲を計算
+                let weekday = calendar.component(.weekday, from: offsetDate)
+                let daysFromWeekStart = weekday - calendar.firstWeekday
+                startDate = calendar.date(byAdding: .day, value: -daysFromWeekStart, to: offsetDate) ?? offsetDate
+                endDate = calendar.date(byAdding: .day, value: 6, to: startDate) ?? offsetDate
+            }
+        case 1: // 月
+            // 指定月の開始日と終了日
+            if let monthInterval = calendar.dateInterval(of: .month, for: offsetDate) {
+                startDate = monthInterval.start
+                endDate = monthInterval.end
+            } else {
+                // フォールバック: 手動で月の範囲を計算
+                let components = calendar.dateComponents([.year, .month], from: offsetDate)
+                startDate = calendar.date(from: components) ?? offsetDate
+                endDate = calendar.date(byAdding: .month, value: 1, to: startDate) ?? offsetDate
+            }
+        default:
+            startDate = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+            endDate = today
+        }
+        
+        return (startDate: startDate, endDate: endDate)
+    }
+    
+    // 指定された期間とオフセットの月の日付範囲を取得
+    func getMonthDateRange(period: Int, offset: Int) -> (startDate: Date, endDate: Date) {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // オフセットを計算（現在=0, 前=1, 前々=2）
+        let offsetDate: Date
+        switch offset {
+        case 0: // 現在
+            offsetDate = today
+        case 1: // 前
+            offsetDate = period == 0 ? 
+                calendar.date(byAdding: .weekOfYear, value: -1, to: today)! :
+                calendar.date(byAdding: .month, value: -1, to: today)!
+        case 2: // 前々
+            offsetDate = period == 0 ? 
+                calendar.date(byAdding: .weekOfYear, value: -2, to: today)! :
+                calendar.date(byAdding: .month, value: -2, to: today)!
+        default:
+            offsetDate = today
+        }
+        
+        let startDate: Date
+        let endDate: Date
+        
+        switch period {
+        case 0: // 週
+            // 指定週の開始日と終了日を正確に計算
+            if let weekInterval = calendar.dateInterval(of: .weekOfYear, for: offsetDate) {
+                startDate = weekInterval.start
+                // 週の終了日は7日後の前日（6日後）にする
+                endDate = calendar.date(byAdding: .day, value: 6, to: startDate) ?? startDate
+            } else {
+                // フォールバック: 手動で週の範囲を計算
+                let weekday = calendar.component(.weekday, from: offsetDate)
+                let daysFromWeekStart = weekday - calendar.firstWeekday
+                startDate = calendar.date(byAdding: .day, value: -daysFromWeekStart, to: offsetDate) ?? offsetDate
+                endDate = calendar.date(byAdding: .day, value: 6, to: startDate) ?? offsetDate
+            }
+        case 1: // 月
+            // 指定月の開始日と終了日
+            if let monthInterval = calendar.dateInterval(of: .month, for: offsetDate) {
+                startDate = monthInterval.start
+                endDate = monthInterval.end
+            } else {
+                // フォールバック: 手動で月の範囲を計算
+                let components = calendar.dateComponents([.year, .month], from: offsetDate)
+                startDate = calendar.date(from: components) ?? offsetDate
+                endDate = calendar.date(byAdding: .month, value: 1, to: startDate) ?? offsetDate
+            }
+        default:
+            startDate = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+            endDate = today
+        }
+        
+        return (startDate: startDate, endDate: endDate)
     }
 } 
